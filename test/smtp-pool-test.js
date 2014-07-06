@@ -24,6 +24,8 @@ MockBuilder.prototype.createReadStream = function() {
 };
 
 describe('SMTP Pool Tests', function() {
+    this.timeout(100 * 1000);
+
     var server;
 
     beforeEach(function(done) {
@@ -107,8 +109,6 @@ describe('SMTP Pool Tests', function() {
     });
 
     it('should send multiple mails', function(done) {
-        this.timeout(10 * 1000);
-
         var pool = smtpPool({
             port: PORT_NUMBER,
             auth: {
@@ -169,8 +169,6 @@ describe('SMTP Pool Tests', function() {
     });
 
     it('should tolerate connection errors', function(done) {
-        this.timeout(10 * 1000);
-
         var pool = smtpPool({
             port: PORT_NUMBER,
             auth: {
@@ -229,8 +227,6 @@ describe('SMTP Pool Tests', function() {
     });
 
     it('should not send more then allowed for one connection', function(done) {
-        this.timeout(10 * 1000);
-
         var pool = smtpPool({
             port: PORT_NUMBER,
             auth: {
