@@ -304,7 +304,7 @@ PoolResource.prototype.send = function(mail, callback) {
             this.emit('error', err);
             return callback(err);
         } else {
-            info.messageId = mail.message.getHeader('message-id');
+            info.messageId = (mail.message.getHeader('message-id') || '').replace(/[<>\s]/g, '');
             callback(null, info);
         }
 
