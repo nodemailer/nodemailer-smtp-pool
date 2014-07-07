@@ -23,6 +23,10 @@ MockBuilder.prototype.createReadStream = function() {
     return this.message;
 };
 
+MockBuilder.prototype.getHeader = function() {
+    return 'teretere';
+};
+
 describe('SMTP Pool Tests', function() {
     this.timeout(100 * 1000);
 
