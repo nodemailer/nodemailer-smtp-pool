@@ -297,6 +297,7 @@ PoolResource.prototype.send = function(mail, callback) {
     }
 
     this.connection.send(mail.data.envelope || mail.message.getEnvelope(), mail.message.createReadStream(), function(err, info) {
+        var envelope;
         this.messages++;
 
         if (err) {
@@ -304,6 +305,11 @@ PoolResource.prototype.send = function(mail, callback) {
             this.emit('error', err);
             return callback(err);
         } else {
+            envelope = mail.data.envelope || mail.message.getEnvelope();
+            info.envelope = {
+                from: envelope.from,
+                to: envelope.to
+            };
             info.messageId = (mail.message.getHeader('message-id') || '').replace(/[<>\s]/g, '');
             callback(null, info);
         }
