@@ -74,7 +74,7 @@ describe('SMTP Pool Tests', function() {
         });
         expect(pool.options.host).to.equal('smtp.gmail.com');
         expect(pool.options.port).to.equal(465);
-        expect(pool.options.secureConnection).to.be.true;
+        expect(pool.options.secure).to.be.true;
     });
 
     it('should send mail', function(done) {
