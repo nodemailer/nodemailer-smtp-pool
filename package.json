@@ -1,6 +1,6 @@
 {
   "name": "nodemailer-smtp-pool",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "SMTP transport for Nodemailer",
   "main": "src/smtp-pool.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "homepage": "http://github.com/andris9/nodemailer-smtp-pool",
   "dependencies": {
     "nodemailer-wellknown": "^0.1.1",
-    "smtp-connection": "^0.1.7"
+    "smtp-connection": "^1.0.0"
   },
   "devDependencies": {
     "chai": "~1.8.1",
