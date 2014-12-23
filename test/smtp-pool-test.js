@@ -4,6 +4,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 var chai = require('chai');
 var expect = chai.expect;
+var sinon = require('sinon');
 var smtpPool = require('../src/smtp-pool');
 var simplesmtp = require('simplesmtp');
 chai.Assertion.includeStack = true;
@@ -71,8 +72,12 @@ describe('SMTP Pool Tests', function() {
             }
         });
 
-        var chunks = [],
-            message = new Array(1024).join('teretere, vana kere\n');
+        var chunks = [];
+        var messageString = new Array(1024).join('teretere, vana kere\n');
+        var message = new MockBuilder({
+            from: 'test@valid.sender',
+            to: 'test@valid.recipient'
+        }, messageString);
 
         server.on('data', function(connection, chunk) {
             chunks.push(chunk);
@@ -80,16 +85,13 @@ describe('SMTP Pool Tests', function() {
 
         server.on('dataReady', function(connection, callback) {
             var body = Buffer.concat(chunks);
-            expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+            expect(body.toString()).to.equal(messageString.trim().replace(/\n/g, '\r\n'));
             callback(null, true);
         });
 
         pool.send({
             data: {},
-            message: new MockBuilder({
-                from: 'test@valid.sender',
-                to: 'test@valid.recipient'
-            }, message)
+            message: message
         }, function(err) {
             expect(err).to.not.exist;
             pool.close();
@@ -213,6 +215,36 @@ describe('SMTP Pool Tests', function() {
         for (var i = 0; i < total; i++) {
             sendMessage(cb);
         }
+    });
+
+    it('should proxy error events triggered by the message stream', function(done) {
+        var pool = smtpPool({
+            port: PORT_NUMBER,
+            auth: {
+                user: 'testuser',
+                pass: 'testpass'
+            }
+        });
+        var errorSpy = sinon.spy();
+
+        var streamError = new Error('stream read error');
+        var messageString = new Array(1024).join('teretere, vana kere\n');
+        var message = new MockBuilder({
+            from: 'test@valid.sender',
+            to: 'test@valid.recipient'
+        }, messageString, streamError);
+
+        pool.on('error', errorSpy);
+
+        pool.send({
+            data: {},
+            message: message
+        }, function(err) {
+            expect(err).to.not.exist;
+            expect(errorSpy.callCount).to.equal(1);
+            pool.close();
+            done();
+        });
     });
 
     it('should not send more then allowed for one connection', function(done) {
