@@ -9,23 +9,8 @@ var simplesmtp = require('simplesmtp');
 chai.Assertion.includeStack = true;
 
 var PORT_NUMBER = 8397;
+var MockBuilder = require('./mocks/mock-builder');
 
-function MockBuilder(envelope, message) {
-    this.envelope = envelope;
-    this.message = message;
-}
-
-MockBuilder.prototype.getEnvelope = function() {
-    return this.envelope;
-};
-
-MockBuilder.prototype.createReadStream = function() {
-    return this.message;
-};
-
-MockBuilder.prototype.getHeader = function() {
-    return 'teretere';
-};
 
 describe('SMTP Pool Tests', function() {
     this.timeout(100 * 1000);
