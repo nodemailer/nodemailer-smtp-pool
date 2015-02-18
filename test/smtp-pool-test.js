@@ -6,7 +6,7 @@ var chai = require('chai');
 var expect = chai.expect;
 var smtpPool = require('../src/smtp-pool');
 var simplesmtp = require('simplesmtp');
-chai.Assertion.includeStack = true;
+chai.config.includeStack = true;
 
 var PORT_NUMBER = 8397;
 
