@@ -5,7 +5,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 var chai = require('chai');
 var expect = chai.expect;
 var smtpPool = require('../src/smtp-pool');
-var simplesmtp = require('simplesmtp');
+var SMTPServer = require('smtp-server').SMTPServer;
 chai.config.includeStack = true;
 
 var PORT_NUMBER = 8397;
@@ -33,33 +33,55 @@ describe('SMTP Pool Tests', function() {
     var server;
 
     beforeEach(function(done) {
-        server = new simplesmtp.createServer({
-            ignoreTLS: true,
-            disableDNSValidation: true,
-            enableAuthentication: true,
-            debug: false,
-            authMethods: ['PLAIN', 'XOAUTH2']
-        });
+        server = new SMTPServer({
+            authMethods: ['PLAIN', 'XOAUTH2'],
+            disabledCommands: ['STARTTLS'],
 
-        server.setMaxListeners(0);
+            onData: function(stream, session, callback) {
+                stream.on('data', function() {});
+                stream.on('end', callback);
+            },
 
-        server.on('authorizeUser', function(connection, username, pass, callback) {
-            callback(null, username === 'testuser' && (pass === 'testpass' || pass === 'testtoken'));
-        });
-
-        server.on('validateSender', function(connection, email, callback) {
-            callback(!/@valid.sender/.test(email) && new Error('Invalid sender'));
-        });
-
-        server.on('validateRecipient', function(connection, email, callback) {
-            callback(!/@valid.recipient/.test(email) && new Error('Invalid recipient'));
+            onAuth: function(auth, session, callback) {
+                if (auth.method !== 'XOAUTH2') {
+                    if (auth.username !== 'testuser' || auth.password !== 'testpass') {
+                        return callback(new Error('Invalid username or password'));
+                    }
+                } else {
+                    if (auth.username !== 'testuser' || auth.accessToken !== 'testtoken') {
+                        return callback(null, {
+                            data: {
+                                status: '401',
+                                schemes: 'bearer mac',
+                                scope: 'my_smtp_access_scope_name'
+                            }
+                        });
+                    }
+                }
+                callback(null, {
+                    user: 123
+                });
+            },
+            onMailFrom: function(address, session, callback) {
+                if (!/@valid.sender/.test(address.address)) {
+                    return callback(new Error('Only user@valid.sender is allowed to send mail'));
+                }
+                return callback(); // Accept the address
+            },
+            onRcptTo: function(address, session, callback) {
+                if (!/@valid.recipient/.test(address.address)) {
+                    return callback(new Error('Only user@valid.recipient is allowed to receive mail'));
+                }
+                return callback(); // Accept the address
+            },
+            logger: false
         });
 
         server.listen(PORT_NUMBER, done);
     });
 
     afterEach(function(done) {
-        server.end(done);
+        server.close(done);
     });
 
     it('Should expose version number', function() {
