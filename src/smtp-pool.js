@@ -23,7 +23,7 @@ function SMTPPool(options) {
 
     var hostData;
 
-    this.options = options || {};
+    this.options = options && clone(options) || {};
     this.options.maxConnections = this.options.maxConnections || 5;
     this.options.maxMessages = this.options.maxMessages || 100;
 
@@ -36,7 +36,7 @@ function SMTPPool(options) {
     }
 
     // temporary object
-    var connection = new SMTPConnection(options);
+    var connection = new SMTPConnection(this.options);
 
     this.name = 'SMTP (pool)';
     this.version = packageData.version + '[client:' + connection.version + ']';
