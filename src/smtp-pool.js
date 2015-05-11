@@ -3,6 +3,7 @@
 var SMTPConnection = require('smtp-connection');
 var packageData = require('../package.json');
 var wellknown = require('nodemailer-wellknown');
+var clone = require('clone');
 
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
