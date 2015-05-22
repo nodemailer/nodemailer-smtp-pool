@@ -305,4 +305,68 @@ describe('SMTP Pool Tests', function() {
             sendMessage(cb);
         }
     });
+
+    it('should send multiple mails with rate limit', function(done) {
+        var pool = smtpPool({
+            port: PORT_NUMBER,
+            auth: {
+                user: 'testuser',
+                pass: 'testpass'
+            },
+            maxConnections: 10,
+            rateLimit: 200 // 200 messages in sec, so sending 5000 messages should take at least 24 seconds and probably under 25 sec
+        });
+        var message = 'teretere, vana kere\n';
+        var startTime = Date.now();
+
+        server.on('startData', function(connection) {
+            connection.chunks = [];
+        });
+
+        server.on('data', function(connection, chunk) {
+            connection.chunks.push(chunk);
+        });
+
+        server.on('dataReady', function(connection, callback) {
+            var body = Buffer.concat(connection.chunks);
+            expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+            callback(null, true);
+        });
+
+        function sendMessage(callback) {
+            pool.send({
+                data: {},
+                message: new MockBuilder({
+                    from: 'test@valid.sender',
+                    to: 'test@valid.recipient'
+                }, message)
+            }, function(err) {
+                expect(err).to.not.exist;
+                callback();
+            });
+        }
+
+        var total = 5000;
+        var returned = 0;
+        var cb = function() {
+            if (++returned === total) {
+                var endTime = Date.now();
+                expect(endTime - startTime).to.be.at.least(24000);
+
+                pool.close();
+                done();
+            }
+        };
+
+        var i = 0;
+        var send = function() {
+            if (i++ >= total) {
+                return;
+            }
+            sendMessage(cb);
+            setImmediate(send);
+        };
+
+        send();
+    });
 });

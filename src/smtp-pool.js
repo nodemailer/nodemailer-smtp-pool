@@ -42,6 +42,12 @@ function SMTPPool(options) {
     this.name = 'SMTP (pool)';
     this.version = packageData.version + '[client:' + connection.version + ']';
 
+    this._rateLimit = {
+        counter: 0,
+        timeout: null,
+        waiting: [],
+        checkpoint: false
+    };
     this._closed = false;
     this._queue = [];
     this._connections = [];
@@ -70,6 +76,9 @@ SMTPPool.prototype.send = function(mail, callback) {
 SMTPPool.prototype.close = function() {
     var connection;
     this._closed = true;
+
+    // clear rate limit timer if it exists
+    clearTimeout(this._rateLimit.timeout);
 
     // remove all available connections
     for (var i = this._connections.length - 1; i >= 0; i--) {
@@ -131,6 +140,9 @@ SMTPPool.prototype._processMessages = function() {
         });
     }
 
+    if (this.options.rateLimit) {
+        this._rateLimit.counter++;
+    }
     connection.send(element.mail, element.callback);
 };
 
@@ -138,7 +150,7 @@ SMTPPool.prototype._processMessages = function() {
  * Creates a new pool resource
  */
 SMTPPool.prototype._createConnection = function() {
-    var connection = new PoolResource(this.options);
+    var connection = new PoolResource(this);
     connection.id = ++this._connectionCounter;
 
     if (this.options.debug) {
@@ -200,14 +212,61 @@ SMTPPool.prototype._createConnection = function() {
 };
 
 /**
+ * Checks if connections have hit current rate limit and if so, queues the availability callback
+ *
+ * @param {Function} callback Callback function to run once rate limiter has been cleared
+ */
+SMTPPool.prototype._checkRateLimit = function(callback) {
+    if (!this.options.rateLimit) {
+        return callback();
+    }
+
+    var now = Date.now();
+
+    if (!this._rateLimit.checkpoint) {
+        this._rateLimit.checkpoint = now;
+    }
+
+    if (this._rateLimit.counter < this.options.rateLimit) {
+        return callback();
+    }
+
+    this._rateLimit.waiting.push(callback);
+
+    if (this._rateLimit.checkpoint <= now - 1000) {
+        return this._clearRateLimit();
+    } else if (!this._rateLimit.timeout) {
+        this._rateLimit.timeout = setTimeout(this._clearRateLimit.bind(this), 1000 - (now - this._rateLimit.checkpoint));
+        this._rateLimit.checkpoint = now;
+    }
+};
+
+/**
+ * Clears current rate limit limitation and runs paused callback
+ */
+SMTPPool.prototype._clearRateLimit = function() {
+    clearTimeout(this._rateLimit.timeout);
+    this._rateLimit.timeout = null;
+    this._rateLimit.counter = 0;
+    this._rateLimit.checkpoint = false;
+
+    // resume all paused connections
+    while (this._rateLimit.waiting.length) {
+        var cb = this._rateLimit.waiting.shift();
+        setImmediate(cb);
+    }
+};
+
+/**
  * Creates an element for the pool
  *
  * @constructor
- * @param {Object} options SMTPPool options
+ * @param {Object} options SMTPPool instance
  */
-function PoolResource(options) {
+function PoolResource(pool) {
     EventEmitter.call(this);
-    this.options = options;
+    this.pool = pool;
+    this.options = pool.options;
 
     this._connection = false;
     this._connected = false;
@@ -319,8 +378,10 @@ PoolResource.prototype.send = function(mail, callback) {
             this.connection.close();
             this.emit('error', new Error('Resource exhausted'));
         } else {
-            this.available = true;
-            this.emit('available');
+            this.pool._checkRateLimit(function() {
+                this.available = true;
+                this.emit('available');
+            }.bind(this));
         }
     }.bind(this));
 };

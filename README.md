@@ -39,6 +39,7 @@ Where
     * **options.tls** defines additional options to be passed to the socket constructor, eg. *{rejectUnauthorized: true}*
     * **maxConnections** (defaults to 5) is the count of maximum simultaneous connections to make against the SMTP server
     * **maxMessages** (defaults to 100) limits the message count to be sent using a single connection. After maxMessages messages the connection is dropped and a new one is created for the following messages
+    * **rateLimit** (defaults to `false`) limits the message count to be sent in a second. Once rateLimit is reached, sending is paused until the end of the second. This limit is shared between connections, so if one connection uses up the limit, then other connections are paused as well
 
 Pooled SMTP transport uses the same options as [SMTP transport](https://github.com/andris9/nodemailer-smtp-transport) with the addition of **maxConnections** and **maxMessages**.
 
@@ -52,8 +53,12 @@ var transport = nodemailer.createTransport(smtpPool({
         user: 'username',
         pass: 'password'
     },
+    // use up to 5 parallel connections
     maxConnections: 5,
-    maxMessages: 10
+    // do not send more than 10 messages per connection
+    maxMessages: 10,
+    // no not send more than 5 messages in a second
+    rateLimit: 5
 }));
 ```
 

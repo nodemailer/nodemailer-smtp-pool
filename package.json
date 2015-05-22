@@ -1,6 +1,6 @@
 {
   "name": "nodemailer-smtp-pool",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "SMTP transport for Nodemailer",
   "main": "src/smtp-pool.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.11.2",
     "grunt-mocha-test": "^0.12.7",
-    "mocha": "^2.2.4",
+    "mocha": "^2.2.5",
     "sinon": "^1.14.1",
     "smtp-server": "^1.4.0"
   }
