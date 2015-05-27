@@ -142,6 +142,9 @@ SMTPPool.prototype._processMessages = function() {
 
     if (this.options.rateLimit) {
         this._rateLimit.counter++;
+        if (!this._rateLimit.checkpoint) {
+            this._rateLimit.checkpoint = Date.now();
+        }
     }
     connection.send(element.mail, element.callback);
 };
@@ -222,10 +225,6 @@ SMTPPool.prototype._checkRateLimit = function(callback) {
     }
 
     var now = Date.now();
-
-    if (!this._rateLimit.checkpoint) {
-        this._rateLimit.checkpoint = now;
-    }
 
     if (this._rateLimit.counter < this.options.rateLimit) {
         return callback();
