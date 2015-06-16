@@ -209,6 +209,8 @@ SMTPPool.prototype._createConnection = function() {
         }
     }.bind(this));
 
+    // message could not be read
+    connection.on('readError', this.emit.bind(this, 'error'));
     this._connections.push(connection);
 
     return connection;
@@ -355,7 +357,10 @@ PoolResource.prototype.send = function(mail, callback) {
         return;
     }
 
-    this.connection.send(mail.data.envelope || mail.message.getEnvelope(), mail.message.createReadStream(), function(err, info) {
+    var messageReadStream = mail.message.createReadStream();
+    messageReadStream.on('error', this.emit.bind(this, 'readError'));
+
+    this.connection.send(mail.data.envelope || mail.message.getEnvelope(), messageReadStream, function(err, info) {
         var envelope;
         this.messages++;
 
