@@ -146,7 +146,12 @@ SMTPPool.prototype._processMessages = function() {
             this._rateLimit.checkpoint = Date.now();
         }
     }
-    connection.send(element.mail, element.callback);
+
+    connection.once('error', element.callback);
+    connection.send(element.mail, function (err, info) {
+        connection.removeListener('error', element.callback);
+        element.callback(err, info);
+    });
 };
 
 /**
