@@ -72,7 +72,10 @@ describe('SMTP Pool Tests', function() {
                 if (!/@valid.recipient/.test(address.address)) {
                     return callback(new Error('Only user@valid.recipient is allowed to receive mail'));
                 }
-                return callback(); // Accept the address
+
+                if (!/timeout/.test(address.address)) {
+                    return callback(); // Accept the address
+                }
             },
             logger: false
         });
@@ -250,6 +253,41 @@ describe('SMTP Pool Tests', function() {
         for (var i = 0; i < total; i++) {
             sendMessage(cb);
         }
+    });
+
+    it('should call back with connection errors to senders having messages in flight', function(done) {
+        var pool = smtpPool({
+            maxConnections: 1,
+            socketTimeout: 200,
+            port: PORT_NUMBER,
+            auth: {
+                user: 'testuser',
+                pass: 'testpass'
+            }
+        });
+        var message = new Array(10 * 1024).join('teretere, vana kere\n');
+
+        pool.send({
+            data: {},
+            message: new MockBuilder({
+                from: 'test@valid.sender',
+                to: 'test@valid.recipient'
+            }, message)
+        }, function(err) {
+            expect(err).not.to.exist;
+        });
+
+        pool.send({
+            data: {},
+            message: new MockBuilder({
+                from: 'test@valid.sender',
+                to: 'test+timeout@valid.recipient'
+            }, message)
+        }, function(err) {
+            expect(err).to.exist;
+            pool.close();
+            done();
+        });
     });
 
     it('should not send more then allowed for one connection', function(done) {
