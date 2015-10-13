@@ -62,9 +62,18 @@ util.inherits(SMTPPool, EventEmitter);
  * @param {Function} callback Callback function
  */
 SMTPPool.prototype.send = function(mail, callback) {
+    var called = false;
     this._queue.push({
         mail: mail,
-        callback: callback
+        callback: function(){
+            // callback might me fired twice, depending on how connection error is handled
+            // so we enforce strict limit of single run only
+            if(called){
+                return;
+            }
+            called = true;
+            callback.apply(null, Array.prototype.slice.call(arguments));
+        }
     });
     this._processMessages();
 };
