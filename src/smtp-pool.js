@@ -240,6 +240,20 @@ SMTPPool.prototype._continueProcessing = function() {
 };
 
 /**
+ * Remove resource from pool
+ *
+ * @param {Object} connection The PoolResource to remove
+ */
+SMTPPool.prototype._removeConnection = function(connection) {
+    for (var i = 0, len = this._connections.length; i < len; i++) {
+        if (this._connections[i] === connection) {
+            this._connections.splice(i, 1);
+            break;
+        }
+    }
+};
+
+/**
  * Checks if connections have hit current rate limit and if so, queues the availability callback
  *
  * @param {Function} callback Callback function to run once rate limiter has been cleared
