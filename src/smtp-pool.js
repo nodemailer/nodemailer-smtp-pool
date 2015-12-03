@@ -428,7 +428,9 @@ PoolResource.prototype.send = function(mail, callback) {
  * Closes the connection
  */
 PoolResource.prototype.close = function() {
+    this._connected = false;
     if (this.connection) {
         this.connection.close();
     }
+    this.emit('close');
 };
