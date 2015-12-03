@@ -91,7 +91,7 @@ SMTPPool.prototype.close = function() {
 
     // remove all available connections
     for (var i = this._connections.length - 1; i >= 0; i--) {
-        if (this._connections[i].available) {
+        if (this._connections[i] && this._connections[i].available) {
             connection = this._connections[i];
             connection.close();
 
@@ -99,8 +99,6 @@ SMTPPool.prototype.close = function() {
                 type: 'close',
                 message: 'Connection #' + connection.id + ' removed'
             });
-
-            this._connections.splice(i, 1);
         }
     }
 
@@ -209,23 +207,51 @@ SMTPPool.prototype._createConnection = function() {
         }
 
         // remove the erroneus connection from connections list
-        for (var i = 0, len = this._connections.length; i < len; i++) {
-            if (this._connections[i] === connection) {
-                this._connections.splice(i, 1);
-                break;
-            }
+        this._removeConnection(connection);
+
+        this._continueProcessing();
+    }.bind(this));
+
+    connection.once('close', function() {
+        if (this.options.debug) {
+            this.emit('log', {
+                type: 'close',
+                message: 'Connection #' + connection.id + ' was closed'
+            });
         }
 
-        if (this._closed) {
-            this.close();
-        } else {
-            setTimeout(this._processMessages.bind(this), 100);
-        }
+        this._removeConnection(connection);
+        this._continueProcessing();
     }.bind(this));
 
     this._connections.push(connection);
 
     return connection;
+};
+
+/**
+ * Continue to process message if the pool hasn't closed
+ */
+SMTPPool.prototype._continueProcessing = function() {
+    if (this._closed) {
+        this.close();
+    } else {
+        setTimeout(this._processMessages.bind(this), 100);
+    }
+};
+
+/**
+ * Remove resource from pool
+ *
+ * @param {Object} connection The PoolResource to remove
+ */
+SMTPPool.prototype._removeConnection = function(connection) {
+    for (var i = 0, len = this._connections.length; i < len; i++) {
+        if (this._connections[i] === connection) {
+            this._connections.splice(i, 1);
+            break;
+        }
+    }
 };
 
 /**
@@ -314,8 +340,8 @@ PoolResource.prototype.connect = function(callback) {
         return callback(err);
     }.bind(this));
 
-    this.connection.once('close', function() {
-        this.emit('error', new Error('Connection was closed'));
+    this.connection.once('end', function() {
+        this.close();
         if (returned) {
             return;
         }
@@ -403,7 +429,9 @@ PoolResource.prototype.send = function(mail, callback) {
  * Closes the connection
  */
 PoolResource.prototype.close = function() {
+    this._connected = false;
     if (this.connection) {
         this.connection.close();
     }
+    this.emit('close');
 };
