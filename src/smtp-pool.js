@@ -229,6 +229,17 @@ SMTPPool.prototype._createConnection = function() {
 };
 
 /**
+ * Continue to process message if the pool hasn't closed
+ */
+SMTPPool.prototype._continueProcessing = function() {
+    if (this._closed) {
+        this.close();
+    } else {
+        setTimeout(this._processMessages.bind(this), 100);
+    }
+};
+
+/**
  * Checks if connections have hit current rate limit and if so, queues the availability callback
  *
  * @param {Function} callback Callback function to run once rate limiter has been cleared
