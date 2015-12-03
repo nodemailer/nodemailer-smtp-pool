@@ -91,7 +91,7 @@ SMTPPool.prototype.close = function() {
 
     // remove all available connections
     for (var i = this._connections.length - 1; i >= 0; i--) {
-        if (this._connections[i].available) {
+        if (this._connections[i] && this._connections[i].available) {
             connection = this._connections[i];
             connection.close();
 
@@ -99,8 +99,6 @@ SMTPPool.prototype.close = function() {
                 type: 'close',
                 message: 'Connection #' + connection.id + ' removed'
             });
-
-            this._connections.splice(i, 1);
         }
     }
 
