@@ -339,8 +339,8 @@ PoolResource.prototype.connect = function(callback) {
         return callback(err);
     }.bind(this));
 
-    this.connection.once('close', function() {
-        this.emit('error', new Error('Connection was closed'));
+    this.connection.once('end', function() {
+        this.close();
         if (returned) {
             return;
         }
