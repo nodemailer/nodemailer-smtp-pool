@@ -66,15 +66,7 @@ SMTPPool.prototype.send = function (mail, callback) {
 
     this._queue.push({
         mail: mail,
-        callback: function () {
-            // callback might me fired twice, depending on how connection error is handled
-            // so we enforce strict limit of single run only
-            if(called){
-                return;
-            }
-            called = true;
-            callback.apply(null, Array.prototype.slice.call(arguments));
-        }
+        callback: callback
     });
     this._processMessages();
 };
@@ -117,6 +109,9 @@ SMTPPool.prototype.close = function () {
  * an available connection, then use this connection to send the mail
  */
 SMTPPool.prototype._processMessages = function () {
+    var connection, element,
+        onError, onClose, handledSend, closeTimeout;
+
     if (!this._queue.length || this._closed) {
         return;
     }
@@ -154,10 +149,45 @@ SMTPPool.prototype._processMessages = function () {
         }
     }
 
-    connection.once('error', element.callback);
+    onError = function (err) {
+        cleanup();
+        element.callback(err);
+    };
+
+    onClose = function () {
+        // If the connection closed when sending, add the message to the queue again
+        // Note that we must wait a bit.. because the callback of the 'error' handler might be called
+        // in the next event loop
+        closeTimeout = setTimeout(function () {
+            closeTimeout = null;
+
+            cleanup();
+            this._queue.unshift(element);
+            this._processMessages();
+        }.bind(this), 50);
+    }.bind(this);
+
+    function cleanup() {
+        handledSend = true;
+
+        connection.removeListener('error', onError);
+        connection.removeListener('close', onClose);
+
+        if (closeTimeout) {
+            clearTimeout(closeTimeout);
+            closeTimeout = null;
+        }
+    }
+
+    connection.once('error', onError);
+    connection.once('close', onClose);
+
     connection.send(element.mail, function (err, info) {
-        connection.removeListener('error', element.callback);
-        element.callback(err, info);
+        // Do not call the callback if we already handled this
+        if (!handledSend) {
+            cleanup();
+            element.callback(err, info);
+        }
     });
 };
 
