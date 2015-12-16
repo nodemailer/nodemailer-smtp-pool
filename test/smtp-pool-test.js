@@ -275,7 +275,7 @@ describe('SMTP Pool Tests', function () {
                     killedConnections = true;
                     callCallback = false;
                     server.connections.forEach(function (connection) {
-                        connection._socket.destroy();
+                        connection._socket.end();
                     });
                 }
             });
