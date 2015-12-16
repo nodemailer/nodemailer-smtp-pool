@@ -62,9 +62,24 @@ util.inherits(SMTPPool, EventEmitter);
  * @param {Function} callback Callback function
  */
 SMTPPool.prototype.send = function (mail, callback) {
+    var called = false;
+
     this._queue.push({
         mail: mail,
-        callback: callback
+        callback: function () {
+            // callback might me fired twice, depending on how connection error is handled
+            // so we enforce strict limit of single run only
+            if (called) {
+                this.emit('log', {
+                    type: 'error',
+                    message: 'Callback invoked multiple times'
+                });
+
+                return;
+            }
+            called = true;
+            callback.apply(null, Array.prototype.slice.call(arguments));
+        }
     });
     this._processMessages();
 };
@@ -107,8 +122,10 @@ SMTPPool.prototype.close = function () {
  * an available connection, then use this connection to send the mail
  */
 SMTPPool.prototype._processMessages = function () {
-    var connection, element,
-        onError, onClose, handledSend, closeTimeout;
+    var connection;
+    var element;
+    var handledSend;
+    var closeTimeout;
 
     if (!this._queue.length || this._closed) {
         return;
@@ -147,35 +164,29 @@ SMTPPool.prototype._processMessages = function () {
         }
     }
 
-    onError = function (err) {
+    var onError = function (err) {
         cleanup();
         element.callback(err);
     };
 
-    onClose = function () {
+    var onClose = function () {
         // If the connection closed when sending, add the message to the queue again
         // Note that we must wait a bit.. because the callback of the 'error' handler might be called
         // in the next event loop
         closeTimeout = setTimeout(function () {
-            closeTimeout = null;
-
             cleanup();
             this._queue.unshift(element);
-            this._processMessages();
+            this._continueProcessing();
         }.bind(this), 50);
     }.bind(this);
 
-    function cleanup() {
+    var cleanup = function () {
+        clearTimeout(closeTimeout);
         handledSend = true;
 
         connection.removeListener('error', onError);
         connection.removeListener('close', onClose);
-
-        if (closeTimeout) {
-            clearTimeout(closeTimeout);
-            closeTimeout = null;
-        }
-    }
+    };
 
     connection.once('error', onError);
     connection.once('close', onClose);
@@ -401,7 +412,7 @@ PoolResource.prototype.connect = function (callback) {
         } else {
             returned = true;
             this._connected = true;
-            callback(null, true);
+            return callback(null, true);
         }
     }.bind(this));
 };
@@ -431,15 +442,15 @@ PoolResource.prototype.send = function (mail, callback) {
             this.connection.close();
             this.emit('error', err);
             return callback(err);
-        } else {
-            envelope = mail.data.envelope || mail.message.getEnvelope();
-            info.envelope = {
-                from: envelope.from,
-                to: envelope.to
-            };
-            info.messageId = (mail.message.getHeader('message-id') || '').replace(/[<>\s]/g, '');
-            callback(null, info);
         }
+
+        envelope = mail.data.envelope || mail.message.getEnvelope();
+        info.envelope = {
+            from: envelope.from,
+            to: envelope.to
+        };
+        info.messageId = (mail.message.getHeader('message-id') || '').replace(/[<>\s]/g, '');
+        callback(null, info);
 
         if (this.messages >= this.options.maxMessages) {
             this.connection.close();
