@@ -252,6 +252,80 @@ describe('SMTP Pool Tests', function () {
         }
     });
 
+    it('should re-assign messages to other connections if connection gets closed without any error nor success', function (done) {
+        var pool = smtpPool({
+            port: PORT_NUMBER,
+            auth: {
+                user: 'testuser',
+                pass: 'testpass'
+            }
+        });
+
+        var message = new Array(10 * 1024).join('teretere, vana kere\n');
+        var sentMessages = 0;
+        var killedConnections = false;
+
+        server.onData = function (stream, session, callback) {
+            var callCallback = true;
+
+            stream.on('data', function () {
+                // If we hit half the messages, simulate the server closing connections
+                // that are open for "long" time
+                if (!killedConnections && sentMessages === total / 2) {
+                    killedConnections = true;
+                    callCallback = false;
+                    server.connections.forEach(function (connection) {
+                        connection._socket.destroy();
+                    });
+                }
+            });
+
+            stream.on('end', function () {
+                if (callCallback) {
+                    sentMessages += 1;
+                    callback();
+                }
+            });
+        };
+
+        function sendMessage(callback) {
+            pool.send({
+                data: {},
+                message: new MockBuilder({
+                    from: 'test@valid.sender',
+                    to: 'test@valid.recipient'
+                }, message)
+            }, function (err) {
+                expect(err).to.not.exist;
+                callback();
+            });
+        }
+
+        function sendHalfBulk() {
+            for (var i = 0; i < total / 2; i++) {
+                sendMessage(cb);
+            }
+        }
+
+        // Send 10 messages in a row.. then wait a bit and send 10 more
+        // We simulate the server will killing "idle" connections
+        // so that we can ensure the pool is handling it properly
+        var total = 20;
+        var returned = 0;
+        var cb = function () {
+            returned++;
+
+            if (returned === total) {
+                pool.close();
+                done();
+            } else if (returned === total / 2) {
+                setTimeout(sendHalfBulk, 1500);
+            }
+        };
+
+        sendHalfBulk();
+    });
+
     it('should call back with connection errors to senders having messages in flight', function (done) {
         var pool = smtpPool({
             maxConnections: 1,

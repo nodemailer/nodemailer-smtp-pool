@@ -9,7 +9,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 // expose to the world
-module.exports = function(options) {
+module.exports = function (options) {
     return new SMTPPool(options);
 };
 
@@ -29,7 +29,7 @@ function SMTPPool(options) {
     this.options.maxMessages = this.options.maxMessages || 100;
 
     if (this.options.service && (hostData = wellknown(this.options.service))) {
-        Object.keys(hostData).forEach(function(key) {
+        Object.keys(hostData).forEach(function (key) {
             if (!(key in this.options)) {
                 this.options[key] = hostData[key];
             }
@@ -61,11 +61,12 @@ util.inherits(SMTPPool, EventEmitter);
  * @param {Object} mail Mail object
  * @param {Function} callback Callback function
  */
-SMTPPool.prototype.send = function(mail, callback) {
+SMTPPool.prototype.send = function (mail, callback) {
     var called = false;
+
     this._queue.push({
         mail: mail,
-        callback: function(){
+        callback: function () {
             // callback might me fired twice, depending on how connection error is handled
             // so we enforce strict limit of single run only
             if(called){
@@ -82,8 +83,9 @@ SMTPPool.prototype.send = function(mail, callback) {
  * Closes all connections in the pool. If there is a message being sent, the connection
  * is closed later
  */
-SMTPPool.prototype.close = function() {
+SMTPPool.prototype.close = function () {
     var connection;
+
     this._closed = true;
 
     // clear rate limit timer if it exists
@@ -114,7 +116,7 @@ SMTPPool.prototype.close = function() {
  * Check the queue and available connections. If there is a message to be sent and there is
  * an available connection, then use this connection to send the mail
  */
-SMTPPool.prototype._processMessages = function() {
+SMTPPool.prototype._processMessages = function () {
     var connection, element;
 
     if (!this._queue.length || this._closed) {
@@ -164,8 +166,9 @@ SMTPPool.prototype._processMessages = function() {
 /**
  * Creates a new pool resource
  */
-SMTPPool.prototype._createConnection = function() {
+SMTPPool.prototype._createConnection = function () {
     var connection = new PoolResource(this);
+
     connection.id = ++this._connectionCounter;
 
     if (this.options.debug) {
@@ -175,12 +178,12 @@ SMTPPool.prototype._createConnection = function() {
         });
     }
 
-    connection.on('log', function(log) {
+    connection.on('log', function (log) {
         this.emit('log', log);
     }.bind(this));
 
     // resource comes available
-    connection.on('available', function() {
+    connection.on('available', function () {
         if (this.options.debug) {
             this.emit('log', {
                 type: 'available',
@@ -198,7 +201,7 @@ SMTPPool.prototype._createConnection = function() {
     }.bind(this));
 
     // resource is terminated with an error
-    connection.once('error', function(err) {
+    connection.once('error', function (err) {
         if (this.options.debug) {
             this.emit('log', {
                 type: 'error',
@@ -212,7 +215,7 @@ SMTPPool.prototype._createConnection = function() {
         this._continueProcessing();
     }.bind(this));
 
-    connection.once('close', function() {
+    connection.once('close', function () {
         if (this.options.debug) {
             this.emit('log', {
                 type: 'close',
@@ -232,7 +235,7 @@ SMTPPool.prototype._createConnection = function() {
 /**
  * Continue to process message if the pool hasn't closed
  */
-SMTPPool.prototype._continueProcessing = function() {
+SMTPPool.prototype._continueProcessing = function () {
     if (this._closed) {
         this.close();
     } else {
@@ -245,12 +248,11 @@ SMTPPool.prototype._continueProcessing = function() {
  *
  * @param {Object} connection The PoolResource to remove
  */
-SMTPPool.prototype._removeConnection = function(connection) {
-    for (var i = 0, len = this._connections.length; i < len; i++) {
-        if (this._connections[i] === connection) {
-            this._connections.splice(i, 1);
-            break;
-        }
+SMTPPool.prototype._removeConnection = function (connection) {
+    var index = this._connections.indexOf(connection);
+
+    if (index !== -1) {
+        this._connections.splice(index, 1);
     }
 };
 
@@ -259,7 +261,7 @@ SMTPPool.prototype._removeConnection = function(connection) {
  *
  * @param {Function} callback Callback function to run once rate limiter has been cleared
  */
-SMTPPool.prototype._checkRateLimit = function(callback) {
+SMTPPool.prototype._checkRateLimit = function (callback) {
     if (!this.options.rateLimit) {
         return callback();
     }
@@ -283,7 +285,7 @@ SMTPPool.prototype._checkRateLimit = function(callback) {
 /**
  * Clears current rate limit limitation and runs paused callback
  */
-SMTPPool.prototype._clearRateLimit = function() {
+SMTPPool.prototype._clearRateLimit = function () {
     clearTimeout(this._rateLimit.timeout);
     this._rateLimit.timeout = null;
     this._rateLimit.counter = 0;
@@ -320,18 +322,18 @@ util.inherits(PoolResource, EventEmitter);
  *
  * @param {Function} callback Callback function to run once the connection is established or failed
  */
-PoolResource.prototype.connect = function(callback) {
+PoolResource.prototype.connect = function (callback) {
     var returned = false;
 
     if (!this.connection) {
         this.connection = new SMTPConnection(this.options);
     }
 
-    this.connection.on('log', function(log) {
+    this.connection.on('log', function (log) {
         this.emit('log', log);
     }.bind(this));
 
-    this.connection.once('error', function(err) {
+    this.connection.once('error', function (err) {
         this.emit('error', err);
         if (returned) {
             return;
@@ -340,7 +342,7 @@ PoolResource.prototype.connect = function(callback) {
         return callback(err);
     }.bind(this));
 
-    this.connection.once('end', function() {
+    this.connection.once('end', function () {
         this.close();
         if (returned) {
             return;
@@ -349,13 +351,13 @@ PoolResource.prototype.connect = function(callback) {
         return callback();
     }.bind(this));
 
-    this.connection.connect(function() {
+    this.connection.connect(function () {
         if (returned) {
             return;
         }
 
         if (this.options.auth) {
-            this.connection.login(this.options.auth, function(err) {
+            this.connection.login(this.options.auth, function (err) {
                 if (returned) {
                     return;
                 }
@@ -384,9 +386,9 @@ PoolResource.prototype.connect = function(callback) {
  * @param {Object} mail Mail object
  * @param {Function} callback Callback function
  */
-PoolResource.prototype.send = function(mail, callback) {
+PoolResource.prototype.send = function (mail, callback) {
     if (!this._connected) {
-        this.connect(function(err) {
+        this.connect(function (err) {
             if (err) {
                 return callback(err);
             }
@@ -395,7 +397,7 @@ PoolResource.prototype.send = function(mail, callback) {
         return;
     }
 
-    this.connection.send(mail.data.envelope || mail.message.getEnvelope(), mail.message.createReadStream(), function(err, info) {
+    this.connection.send(mail.data.envelope || mail.message.getEnvelope(), mail.message.createReadStream(), function (err, info) {
         var envelope;
         this.messages++;
 
@@ -417,7 +419,7 @@ PoolResource.prototype.send = function(mail, callback) {
             this.connection.close();
             this.emit('error', new Error('Resource exhausted'));
         } else {
-            this.pool._checkRateLimit(function() {
+            this.pool._checkRateLimit(function () {
                 this.available = true;
                 this.emit('available');
             }.bind(this));
@@ -428,7 +430,7 @@ PoolResource.prototype.send = function(mail, callback) {
 /**
  * Closes the connection
  */
-PoolResource.prototype.close = function() {
+PoolResource.prototype.close = function () {
     this._connected = false;
     if (this.connection) {
         this.connection.close();
