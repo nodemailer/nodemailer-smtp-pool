@@ -252,7 +252,7 @@ describe('SMTP Pool Tests', function () {
         }
     });
 
-    it('should re-assign messages to other connections if connection gets closed without any error', function (done) {
+    it('should re-assign messages to other connections if connection gets closed without any error nor success', function (done) {
         var pool = smtpPool({
             port: PORT_NUMBER,
             auth: {
@@ -270,7 +270,7 @@ describe('SMTP Pool Tests', function () {
 
             stream.on('data', function () {
                 // If we hit half the messages, simulate the server closing connections
-                // that are open for long time
+                // that are open for "long" time
                 if (!killedConnections && sentMessages === total / 2) {
                     killedConnections = true;
                     callCallback = false;
@@ -308,8 +308,8 @@ describe('SMTP Pool Tests', function () {
         }
 
         // Send 10 messages in a row.. then wait a bit and send 10 more
-        // When we wait a bit.. the server will kill the "idle" connections
-        // so that we can ensure the pool will handle it properly
+        // We simulate the server will killing "idle" connections
+        // so that we can ensure the pool is handling it properly
         var total = 20;
         var returned = 0;
         var cb = function () {
