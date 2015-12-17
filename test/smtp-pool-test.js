@@ -1,3 +1,6 @@
+/* global describe: false, beforeEach: false, afterEach: false, it: false */
+/* eslint-disable no-unused-expressions, no-invalid-this */
+
 'use strict';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -47,16 +50,14 @@ describe('SMTP Pool Tests', function () {
                     if (auth.username !== 'testuser' || auth.password !== 'testpass') {
                         return callback(new Error('Invalid username or password'));
                     }
-                } else {
-                    if (auth.username !== 'testuser' || auth.accessToken !== 'testtoken') {
-                        return callback(null, {
-                            data: {
-                                status: '401',
-                                schemes: 'bearer mac',
-                                scope: 'my_smtp_access_scope_name'
-                            }
-                        });
-                    }
+                } else if (auth.username !== 'testuser' || auth.accessToken !== 'testtoken') {
+                    return callback(null, {
+                        data: {
+                            status: '401',
+                            schemes: 'bearer mac',
+                            scope: 'my_smtp_access_scope_name'
+                        }
+                    });
                 }
                 callback(null, {
                     user: 123
@@ -188,7 +189,7 @@ describe('SMTP Pool Tests', function () {
                 expect(sent).to.be.equal(total);
 
                 pool.close();
-                done();
+                return done();
             }
         };
         for (var i = 0; i < total; i++) {
@@ -244,7 +245,7 @@ describe('SMTP Pool Tests', function () {
         var cb = function () {
             if (++returned === total) {
                 pool.close();
-                done();
+                return done();
             }
         };
         for (var i = 0; i < total; i++) {
@@ -261,6 +262,7 @@ describe('SMTP Pool Tests', function () {
             }
         });
 
+        var total = 20;
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
         var sentMessages = 0;
         var killedConnections = false;
@@ -283,7 +285,7 @@ describe('SMTP Pool Tests', function () {
             stream.on('end', function () {
                 if (callCallback) {
                     sentMessages += 1;
-                    callback();
+                    return callback();
                 }
             });
         };
@@ -301,27 +303,26 @@ describe('SMTP Pool Tests', function () {
             });
         }
 
-        function sendHalfBulk() {
-            for (var i = 0; i < total / 2; i++) {
-                sendMessage(cb);
-            }
-        }
-
         // Send 10 messages in a row.. then wait a bit and send 10 more
         // When we wait a bit.. the server will kill the "idle" connections
         // so that we can ensure the pool will handle it properly
-        var total = 20;
         var returned = 0;
         var cb = function () {
             returned++;
 
             if (returned === total) {
                 pool.close();
-                done();
+                return done();
             } else if (returned === total / 2) {
                 setTimeout(sendHalfBulk, 1500);
             }
         };
+
+        function sendHalfBulk() {
+            for (var i = 0; i < total / 2; i++) {
+                sendMessage(cb);
+            }
+        }
 
         sendHalfBulk();
     });
@@ -405,7 +406,7 @@ describe('SMTP Pool Tests', function () {
                 expect(pool._connections.length).to.be.equal(1);
                 expect(pool._connections[0].messages).to.be.below(6);
                 pool.close();
-                done();
+                return done();
             }
         };
         for (var i = 0; i < total; i++) {
@@ -459,7 +460,7 @@ describe('SMTP Pool Tests', function () {
                 expect(endTime - startTime).to.be.at.least(24000);
 
                 pool.close();
-                done();
+                return done();
             }
         };
 
