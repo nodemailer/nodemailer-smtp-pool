@@ -41,6 +41,8 @@ Where
     * **maxMessages** (defaults to 100) limits the message count to be sent using a single connection. After maxMessages messages the connection is dropped and a new one is created for the following messages
     * **rateLimit** (defaults to `false`) limits the message count to be sent in a second. Once rateLimit is reached, sending is paused until the end of the second. This limit is shared between connections, so if one connection uses up the limit, then other connections are paused as well
 
+Alternatively you can use connection url with protocol 'smtp:' or 'smtps:'. Use query arguments for additional configuration values.
+
 Pooled SMTP transport uses the same options as [SMTP transport](https://github.com/andris9/nodemailer-smtp-transport) with the addition of **maxConnections** and **maxMessages**.
 
 **Example**
@@ -60,6 +62,14 @@ var transport = nodemailer.createTransport(smtpPool({
     // no not send more than 5 messages in a second
     rateLimit: 5
 }));
+```
+
+Or with connection url (gmail)
+
+```javascript
+var transporter = nodemailer.createTransport(
+    smtpTransport('smtps://username%40gmail.com:password@smtp.gmail.com')
+);
 ```
 
 ## Authentication
