@@ -140,13 +140,7 @@ describe('SMTP Pool Tests', function () {
     });
 
     it('should send multiple mails', function (done) {
-        var pool = smtpPool({
-            port: PORT_NUMBER,
-            auth: {
-                user: 'testuser',
-                pass: 'testpass'
-            }
-        });
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER);
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
         server.onData = function (stream, session, callback) {
@@ -363,15 +357,7 @@ describe('SMTP Pool Tests', function () {
     });
 
     it('should not send more then allowed for one connection', function (done) {
-        var pool = smtpPool({
-            port: PORT_NUMBER,
-            auth: {
-                user: 'testuser',
-                pass: 'testpass'
-            },
-            maxConnections: 1,
-            maxMessages: 5
-        });
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?maxConnections=1&maxMessages=5');
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
         server.onData = function (stream, session, callback) {

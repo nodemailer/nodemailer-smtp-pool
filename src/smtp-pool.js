@@ -7,6 +7,7 @@ var clone = require('clone');
 var PoolResource = require('./pool-resource');
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
+var urllib = require('url');
 
 // expose to the world
 module.exports = function (options) {
@@ -24,9 +25,13 @@ function SMTPPool(options) {
 
     var hostData;
 
+    if (options && typeof options === 'string') {
+        options = {
+            url: options
+        };
+    }
+
     this.options = options && clone(options) || {};
-    this.options.maxConnections = this.options.maxConnections || 5;
-    this.options.maxMessages = this.options.maxMessages || 100;
 
     if (this.options.service && (hostData = wellknown(this.options.service))) {
         Object.keys(hostData).forEach(function (key) {
@@ -35,6 +40,43 @@ function SMTPPool(options) {
             }
         }.bind(this));
     }
+
+    // parse a configuration URL into configuration options
+    if (this.options.url) {
+        [urllib.parse(this.options.url, true)].forEach(function (url) {
+            var auth;
+
+            this.options.secure = url.protocol === 'smtps:';
+
+            if (!isNaN(url.port) && Number(url.port)) {
+                this.options.port = Number(url.port);
+            }
+
+            if (url.hostname) {
+                this.options.host = url.hostname;
+            }
+
+            if (url.auth) {
+                auth = url.auth.split(':');
+
+                if (!this.options.auth) {
+                    this.options.auth = {};
+                }
+
+                this.options.auth.user = decodeURIComponent(auth[0]);
+                this.options.auth.pass = decodeURIComponent(auth[1]);
+            }
+
+            Object.keys(url.query || {}).forEach(function (key) {
+                if (!(key in this.options)) {
+                    this.options[key] = url.query[key];
+                }
+            }.bind(this));
+        }.bind(this));
+    }
+
+    this.options.maxConnections = this.options.maxConnections || 5;
+    this.options.maxMessages = this.options.maxMessages || 100;
 
     // temporary object
     var connection = new SMTPConnection(this.options);
