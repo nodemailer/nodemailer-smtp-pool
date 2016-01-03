@@ -7,7 +7,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 var chai = require('chai');
 var expect = chai.expect;
-var smtpPool = require('../src/smtp-pool');
+var smtpPool = require('../lib/smtp-pool');
 var SMTPServer = require('smtp-server').SMTPServer;
 chai.config.includeStack = true;
 
