@@ -7,7 +7,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 var chai = require('chai');
 var expect = chai.expect;
-var smtpPool = require('../src/smtp-pool');
+var smtpPool = require('../lib/smtp-pool');
 var SMTPServer = require('smtp-server').SMTPServer;
 chai.config.includeStack = true;
 
@@ -109,7 +109,9 @@ describe('SMTP Pool Tests', function () {
             auth: {
                 user: 'testuser',
                 pass: 'testpass'
-            }
+            },
+            logger: false,
+            debug: true
         });
 
         var message = new Array(1024).join('teretere, vana kere\n');
@@ -140,7 +142,7 @@ describe('SMTP Pool Tests', function () {
     });
 
     it('should send multiple mails', function (done) {
-        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER);
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?logger=false');
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
         server.onData = function (stream, session, callback) {
@@ -197,7 +199,8 @@ describe('SMTP Pool Tests', function () {
             auth: {
                 user: 'testuser',
                 pass: 'testpass'
-            }
+            },
+            logger: false
         });
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
@@ -253,7 +256,8 @@ describe('SMTP Pool Tests', function () {
             auth: {
                 user: 'testuser',
                 pass: 'testpass'
-            }
+            },
+            logger: false
         });
 
         var total = 20;
@@ -329,7 +333,8 @@ describe('SMTP Pool Tests', function () {
             auth: {
                 user: 'testuser',
                 pass: 'testpass'
-            }
+            },
+            logger: false
         });
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
@@ -357,7 +362,7 @@ describe('SMTP Pool Tests', function () {
     });
 
     it('should not send more then allowed for one connection', function (done) {
-        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?maxConnections=1&maxMessages=5');
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?maxConnections=1&maxMessages=5&logger=false');
         var message = new Array(10 * 1024).join('teretere, vana kere\n');
 
         server.onData = function (stream, session, callback) {
@@ -408,7 +413,8 @@ describe('SMTP Pool Tests', function () {
                 pass: 'testpass'
             },
             maxConnections: 10,
-            rateLimit: 200 // 200 messages in sec, so sending 5000 messages should take at least 24 seconds and probably under 25 sec
+            rateLimit: 200, // 200 messages in sec, so sending 5000 messages should take at least 24 seconds and probably under 25 sec
+            logger: false
         });
         var message = 'teretere, vana kere\n';
         var startTime = Date.now();

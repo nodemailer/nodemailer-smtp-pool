@@ -1,8 +1,8 @@
 {
   "name": "nodemailer-smtp-pool",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "SMTP transport for Nodemailer",
-  "main": "src/smtp-pool.js",
+  "main": "lib/smtp-pool.js",
   "scripts": {
     "test": "grunt"
   },
@@ -21,9 +21,10 @@
   },
   "homepage": "http://github.com/andris9/nodemailer-smtp-pool",
   "dependencies": {
-    "clone": "^1.0.2",
-    "nodemailer-wellknown": "^0.1.7",
-    "smtp-connection": "^1.3.7"
+    "clone": "1.0.2",
+    "nodemailer-shared": "1.0.2",
+    "nodemailer-wellknown": "0.1.7",
+    "smtp-connection": "2.0.0"
   },
   "devDependencies": {
     "chai": "^3.4.1",
