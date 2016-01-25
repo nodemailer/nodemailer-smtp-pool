@@ -467,4 +467,102 @@ describe('SMTP Pool Tests', function () {
 
         send();
     });
+
+    it('should return pending messages once closed', function (done) {
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?maxConnections=1&logger=false');
+        var message = new Array(10 * 1024).join('teretere, vana kere\n');
+
+        server.onData = function (stream, session, callback) {
+            var chunks = [];
+            stream.on('data', function (chunk) {
+                chunks.push(chunk);
+            });
+            stream.on('end', function () {
+                var body = Buffer.concat(chunks);
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                callback();
+            });
+        };
+
+        function sendMessage(callback) {
+            pool.send({
+                data: {},
+                message: new MockBuilder({
+                    from: 'test@valid.sender',
+                    to: 'test@valid.recipient'
+                }, message)
+            }, function (err) {
+                expect(err).to.exist;
+                callback();
+            });
+        }
+
+        var total = 100;
+        var returned = 0;
+        var cb = function () {
+            if (++returned === total) {
+                return done();
+            }
+        };
+        for (var i = 0; i < total; i++) {
+            sendMessage(cb);
+        }
+        pool.close();
+    });
+
+    it('should emit idle for free slots in the pool', function (done) {
+        var pool = smtpPool('smtp://testuser:testpass@localhost:' + PORT_NUMBER + '/?logger=false');
+        var message = new Array(10 * 1024).join('teretere, vana kere\n');
+
+        server.onData = function (stream, session, callback) {
+            var chunks = [];
+            stream.on('data', function (chunk) {
+                chunks.push(chunk);
+            });
+            stream.on('end', function () {
+                var body = Buffer.concat(chunks);
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                callback();
+            });
+        };
+
+        function sendMessage(callback) {
+            pool.send({
+                data: {},
+                message: new MockBuilder({
+                    from: 'test@valid.sender',
+                    to: 'test@valid.recipient'
+                }, message)
+            }, callback);
+        }
+
+        var total = 100;
+        var returned = 0;
+        var cb = function () {
+            if (++returned === total) {
+                pool.close();
+                return done();
+            }
+        };
+
+        var i = 0;
+        pool.on('idle', function () {
+            setTimeout(function () {
+                while (i < total && pool.isIdle()) {
+                    i++;
+                    sendMessage(cb);
+                }
+                if (i > 50) {
+                    // kill all connections. We should still end up with the same amount of callbacks
+                    setImmediate(function () {
+                        for (var j = 5 - 1; j >= 0; j--) {
+                            if (pool._connections[j] && pool._connections[j].connection) {
+                                pool._connections[j].connection._socket.emit('error', new Error('TESTERROR'));
+                            }
+                        }
+                    });
+                }
+            }, 1000);
+        });
+    });
 });

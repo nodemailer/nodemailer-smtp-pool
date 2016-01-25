@@ -73,6 +73,26 @@ var transporter = nodemailer.createTransport(
 );
 ```
 
+## Events
+
+The following events are emitted by this transport
+
+### Event: 'idle'
+
+Emitted if there are free slots in the connection pool.
+Check with `.isIdle()` method if these free slots are still available.
+Using this method makes sense if you maintain your own queue (for example pull from some queue service).
+
+```javascript
+var messages = [...'list of messages'];
+transporter.on('idle', function(){
+    // send next messages from the pending queue
+    while(transporter.isIdle() && messages.length){
+        transporter.send(messages.shift());
+    }
+});
+```
+
 ## Authentication
 
 If authentication data is not present, the connection is considered authenticated from the start.
