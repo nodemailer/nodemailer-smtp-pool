@@ -5,6 +5,7 @@
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
+var net = require('net');
 var chai = require('chai');
 var expect = chai.expect;
 var smtpPool = require('../lib/smtp-pool');
@@ -563,6 +564,50 @@ describe('SMTP Pool Tests', function () {
                     });
                 }
             }, 1000);
+        });
+    });
+
+    it('Should login and send mail using proxied socket', function (done) {
+        var pool = smtpPool({
+            url: 'smtp:testuser:testpass@www.example.com:1234',
+            logger: false,
+            getSocket: function (options, callback) {
+                var socket = net.connect(PORT_NUMBER, 'localhost');
+                var errHandler = function (err) {
+                    callback(err);
+                };
+                socket.on('error', errHandler);
+                socket.on('connect', function () {
+                    socket.removeListener('error', errHandler);
+                    callback(null, {
+                        connection: socket
+                    });
+                });
+            }
+        });
+        var chunks = [],
+            message = new Array(1024).join('teretere, vana kere\n');
+
+        server.on('data', function (connection, chunk) {
+            chunks.push(chunk);
+        });
+
+        server.on('dataReady', function (connection, callback) {
+            var body = Buffer.concat(chunks);
+            expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+            callback(null, true);
+        });
+
+        pool.send({
+            data: {},
+            message: new MockBuilder({
+                from: 'test@valid.sender',
+                to: 'test@valid.recipient'
+            }, message)
+        }, function (err) {
+            expect(err).to.not.exist;
+            pool.close();
+            return done();
         });
     });
 });
