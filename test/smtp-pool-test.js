@@ -610,4 +610,31 @@ describe('SMTP Pool Tests', function () {
             return done();
         });
     });
+
+    it('Should verify connection with success', function (done) {
+        var client = smtpPool({
+            url: 'smtp:testuser:testpass@localhost:' + PORT_NUMBER,
+            logger: false
+        });
+
+        client.verify(function (err, success) {
+            expect(err).to.not.exist;
+            expect(success).to.be.true;
+            client.close();
+            done();
+        });
+    });
+
+    it('Should not verify connection', function (done) {
+        var client = smtpPool({
+            url: 'smtp:testuser:testpass@localhost:999' + PORT_NUMBER,
+            logger: false
+        });
+
+        client.verify(function (err) {
+            expect(err).to.exist;
+            client.close();
+            done();
+        });
+    });
 });

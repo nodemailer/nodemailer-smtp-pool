@@ -164,6 +164,21 @@ Close all connections with `close()`
 transport.close();
 ```
 
+## Verify connection configuration
+
+You can verify your configuration with `verify(callback)` call. If it returns an error, then something is not correct, otherwise the server is ready to accept messages.
+
+```javascript
+// verify connection configuration
+transporter.verify(function(error, success) {
+   if (error) {
+        console.log(error);
+   } else {
+        console.log('Server is ready to take our messages');
+   }
+});
+```
+
 ## License
 
 **MIT**
