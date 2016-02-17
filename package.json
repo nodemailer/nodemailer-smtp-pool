@@ -1,6 +1,6 @@
 {
   "name": "nodemailer-smtp-pool",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "SMTP transport for Nodemailer",
   "main": "lib/smtp-pool.js",
   "scripts": {
