@@ -2,12 +2,10 @@ language: node_js
 sudo: false
 node_js:
   - 0.12
-  - stable
   - iojs
   - 4
   - 5
-before_install:
-  - npm install -g grunt-cli
+  - 6
 notifications:
   email:
     - andris@kreata.ee
