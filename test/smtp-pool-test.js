@@ -124,7 +124,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -153,7 +153,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -212,7 +212,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -373,7 +373,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -427,7 +427,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -480,7 +480,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -522,7 +522,7 @@ describe('SMTP Pool Tests', function () {
             });
             stream.on('end', function () {
                 var body = Buffer.concat(chunks);
-                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+                expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
                 callback();
             });
         };
@@ -594,7 +594,7 @@ describe('SMTP Pool Tests', function () {
 
         server.on('dataReady', function (connection, callback) {
             var body = Buffer.concat(chunks);
-            expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n'));
+            expect(body.toString()).to.equal(message.trim().replace(/\n/g, '\r\n') + '\r\n');
             callback(null, true);
         });
 
