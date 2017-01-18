@@ -414,7 +414,8 @@ describe('SMTP Pool Tests', function () {
                 pass: 'testpass'
             },
             maxConnections: 10,
-            rateLimit: 200, // 200 messages in sec, so sending 5000 messages should take at least 24 seconds and probably under 25 sec
+            rateLimit: 200, // 200 messages in 3 seconds, so sending 2000 messages should take at least 27 seconds and probably under 30 sec
+            rateLimitInterval: 3000,
             logger: false
         });
         var message = 'teretere, vana kere\n';
@@ -445,12 +446,12 @@ describe('SMTP Pool Tests', function () {
             });
         }
 
-        var total = 5000;
+        var total = 2000;
         var returned = 0;
         var cb = function () {
             if (++returned === total) {
                 var endTime = Date.now();
-                expect(endTime - startTime).to.be.at.least(24000);
+                expect(endTime - startTime).to.be.at.least(27000);
 
                 pool.close();
                 return done();

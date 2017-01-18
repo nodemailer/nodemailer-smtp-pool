@@ -40,7 +40,8 @@ Where
     * **options.tls** defines additional options to be passed to the socket constructor, eg. *{rejectUnauthorized: true}*
     * **maxConnections** (defaults to 5) is the count of maximum simultaneous connections to make against the SMTP server
     * **maxMessages** (defaults to 100) limits the message count to be sent using a single connection. After maxMessages messages the connection is dropped and a new one is created for the following messages
-    * **rateLimit** (defaults to `false`) limits the message count to be sent in a second. Once rateLimit is reached, sending is paused until the end of the second. This limit is shared between connections, so if one connection uses up the limit, then other connections are paused as well
+    * **rateLimit** (defaults to `false`) limits the message count to be sent in rateLimitInterval. Once rateLimit is reached, sending is paused until the end of rateLimitInterval. This limit is shared between connections, so if one connection uses up the limit, then other connections are paused as well
+    * **rateLimitInterval** (defaults to 1000) sets duration of rateLimit interval in milliseconds
     * **getSocket** optional method that is called every time a new connection is made against the SMTP server. This method can provide an existing socket to be used instead of creating a new one
 
 Alternatively you can use connection url with protocol 'smtp:' or 'smtps:'. Use query arguments for additional configuration values.
